@@ -1,73 +1,118 @@
-export const LEAGUE_ID = Number(process.env.NEXT_PUBLIC_LEAGUE_ID) || 136557;
-export const FPL_LEAGUE_URL = `https://fantasy.premierleague.com/api/leagues-classic/${LEAGUE_ID}/standings/`;
+export const LEAGUE_ID = 134820;
+export const FPL_LEAGUE_URL = `https://fantasy.premierleague.com/en/leagues/${LEAGUE_ID}/standings/c`;
+const BASE = 'https://fantasy.premierleague.com/api';
 
-const FPL_BASE_URL = 'https://fantasy.premierleague.com/api';
-
-const fetchOptions: RequestInit = {
-  headers: {
-    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-  },
-  next: { revalidate: 60 },
+// Realistic browser headers to bypass Cloudflare 403 WAF checks
+const headers = {
+  'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
+  'Accept': 'application/json, text/plain, */*',
+  'Accept-Language': 'en-US,en;q=0.9',
+  'Referer': 'https://fantasy.premierleague.com/',
+  'Origin': 'https://fantasy.premierleague.com',
+  'Cache-Control': 'no-cache',
+  'Pragma': 'no-cache',
+  'Sec-Fetch-Dest': 'empty',
+  'Sec-Fetch-Mode': 'cors',
+  'Sec-Fetch-Site': 'same-origin',
 };
 
-export async function getBootstrap() {
-  const res = await fetch(`${FPL_BASE_URL}/bootstrap-static/`, fetchOptions);
-  if (!res.ok) throw new Error('Failed to fetch bootstrap static data');
-  return res.json();
-}
+export type Standing = {
+  id?: number;
+  entry: number;
+  entry_name: string;
+  player_name?: string;
+  rank: number;
+  last_rank: number;
+  rank_sort: number;
+  total: number;
+  event_total: number;
+};
 
-export async function getLeague(leagueId: number = LEAGUE_ID, page: number = 1) {
-  const res = await fetch(`${FPL_BASE_URL}/leagues-classic/${leagueId}/standings/?page_new_entries=1&page_standings=${page}`, fetchOptions);
-  if (!res.ok) throw new Error(`Failed to fetch league ${leagueId}`);
-  return res.json();
-}
-
-export async function getAllLeagueStandings(leagueId: number = LEAGUE_ID) {
-  let page = 1;
-  let hasNext = true;
-  let allResults: any[] = [];
-  let firstPageData: any = null;
-
-  while (hasNext && page <= 20) {
-    const data = await getLeague(leagueId, page);
-    if (page === 1) {
-      firstPageData = data;
-    }
-    
-    const results = data.standings?.results || [];
-    allResults = [...allResults, ...results];
-    hasNext = data.standings?.has_next || false;
-    page++;
-  }
-
-  return {
-    first: firstPageData,
-    league: firstPageData?.league,
-    // Diubah menjadi Array langsung agar `standings.length` dan `.reduce()` di route.ts tidak error
-    standings: allResults,
+export type LeagueResponse = {
+  league?: {
+    id: number;
+    name: string;
+    created: string;
+    closed: boolean;
+    max_entries: number | null;
+    league_type: string;
+    scoring: string;
+    start_event: number;
+    code_privacy: string;
+    admin_entry: number | null;
   };
+  standings: { has_next: boolean; page: number; results: Standing[] };
+  new_entries?: unknown;
+};
+
+async function fplFetch<T>(path: string, revalidate = 60): Promise<T> {
+  let lastError: unknown = null;
+  for (let attempt = 1; attempt <= 3; attempt++) {
+    try {
+      const r = await fetch(`${BASE}${path}`, {
+        headers,
+        next: { revalidate },
+      });
+      if (!r.ok) {
+        throw new Error(`FPL API ${r.status}`);
+      }
+      return (await r.json()) as T;
+    } catch (error) {
+      lastError = error;
+      if (attempt < 3) await new Promise((resolve) => setTimeout(resolve, 400 * attempt));
+    }
+  }
+  throw lastError instanceof Error ? lastError : new Error('FPL API unavailable');
 }
 
-export async function getEntry(entryId: number) {
-  const res = await fetch(`${FPL_BASE_URL}/entry/${entryId}/`, fetchOptions);
-  if (!res.ok) throw new Error(`Failed to fetch entry ${entryId}`);
-  return res.json();
+export function getLeague(page = 1): Promise<LeagueResponse> {
+  return fplFetch<LeagueResponse>(`/leagues-classic/${LEAGUE_ID}/standings/?page_standings=${Math.max(1, page)}&phase=1`, 60);
 }
 
-export async function getEntryHistory(entryId: number) {
-  const res = await fetch(`${FPL_BASE_URL}/entry/${entryId}/history/`, fetchOptions);
-  if (!res.ok) throw new Error(`Failed to fetch history for entry ${entryId}`);
-  return res.json();
+export function getBootstrap() {
+  return fplFetch<any>('/bootstrap-static/', 120);
 }
 
-export async function getEntryPicks(entryId: number, eventId: number) {
-  const res = await fetch(`${FPL_BASE_URL}/entry/${entryId}/event/${eventId}/picks/`, fetchOptions);
-  if (!res.ok) throw new Error(`Failed to fetch picks for entry ${entryId} event ${eventId}`);
-  return res.json();
+export function getEntry(id: number) {
+  return fplFetch<any>(`/entry/${id}/`, 60);
 }
 
-export async function getLiveEvent(eventId: number) {
-  const res = await fetch(`${FPL_BASE_URL}/event/${eventId}/live/`, fetchOptions);
-  if (!res.ok) throw new Error(`Failed to fetch live data for event ${eventId}`);
-  return res.json();
+export function getEntryHistory(id: number) {
+  return fplFetch<any>(`/entry/${id}/history/`, 60);
+}
+
+export async function getAllLeagueStandings() {
+  const first = await getLeague(1);
+  const pages: LeagueResponse[] = [first];
+  let page = 1;
+  while (pages.at(-1)?.standings?.has_next && page < 20) {
+    const nextPages = await Promise.all(
+      Array.from({ length: 4 }, async (_, i) => {
+        const next = page + i + 1;
+        if (next > 20 || !pages.at(-1)?.standings?.has_next) return null;
+        try { return await getLeague(next); } catch { return null; }
+      })
+    );
+    for (const result of nextPages) if (result) pages.push(result);
+    page = pages.length;
+    if (!pages.at(-1)?.standings?.has_next) break;
+  }
+  return { first, pages, standings: pages.flatMap((p) => p.standings?.results ?? []) };
+}
+
+export function getRankMovement(
+  currentGameweek: number,
+  lastRank: number | null,
+  rank: number
+): number | null {
+  if (currentGameweek <= 1 || lastRank == null) return null;
+  return lastRank - rank;
+}
+
+export function getEntryPicks(id: number, event: number) {
+  return fplFetch<any>(`/entry/${id}/event/${event}/picks/`, 60);
+}
+
+export function getLiveEvent(event: number) {
+  return fplFetch<any>(`/event/${event}/live/`, 60);
 }
