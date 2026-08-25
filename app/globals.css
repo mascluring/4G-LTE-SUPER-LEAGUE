@@ -1,15 +1,13 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import "tailwindcss";
 
 :root {
-  /* Skema Warna FPL */
-  --fpl-purple: #37003c;       /* Ungu Tua Utama */
-  --fpl-green-pitch: #028940;  /* Hijau Lapangan */
-  --fpl-green-mint: #00ff87;   /* Hijau Mint Neon Akses */
-  --fpl-red: #e90052;          /* Merah Akses FPL */
-  --fpl-white: #ffffff;        /* Putih Clean */
-  --fpl-bg: #f8fafc;           /* Latar Belakang */
+  /* Palet Warna Official FPL */
+  --fpl-purple: #37003c;
+  --fpl-green-pitch: #028940;
+  --fpl-green-mint: #00ff87;
+  --fpl-red: #e90052;
+  --fpl-white: #ffffff;
+  --fpl-bg: #f8fafc;
 
   --background: var(--fpl-bg);
   --foreground: #0f172a;
@@ -18,5 +16,5 @@
 body {
   background-color: var(--background);
   color: var(--foreground);
-  font-family: system-ui, -apple-system, sans-serif;
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
 }
