@@ -1,4 +1,4 @@
-export const LEAGUE_ID = 134820;
+export const LEAGUE_ID = 136557;
 export const FPL_LEAGUE_URL = `https://fantasy.premierleague.com/en/leagues/${LEAGUE_ID}/standings/c`;
 const BASE = 'https://fantasy.premierleague.com/api';
 
