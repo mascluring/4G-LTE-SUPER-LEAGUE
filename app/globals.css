@@ -13,9 +13,9 @@
   --text-muted: #94a3b8;
   --accent-gold: #fbbf24;
   --accent-gold-glow: rgba(251, 191, 36, 0.2);
-  --accent-emerald: #10b981;
+  --accent-emerald: #00ff87;
   --accent-emerald-glow: rgba(16, 185, 129, 0.15);
-  --accent-rose: #f43f5e;
+  --accent-rose: #dc2626;
   --accent-rose-glow: rgba(244, 63, 94, 0.15);
   --accent-indigo: #6366f1;
 }
@@ -53,7 +53,7 @@ a {
 .hero {
   position: relative;
   overflow: hidden;
-  background: radial-gradient(circle at 75% 20%, #1e1b4b 0%, #0f172a 45%, #070a12 90%);
+  background: radial-gradient(circle at 75% 20%, #800a1d 0%, #1a0208 45%, #090204 90%);
   color: #fff;
   border-bottom: 1px solid var(--border-color);
 }
@@ -1607,4 +1607,22 @@ footer {
   width: 24%;
   height: 80px;
   border-radius: 50%;
+}
+
+/* RED-WHITE & FPL GREEN CUSTOMIZATION */
+.hero-copy h1 span {
+  color: #00ff87 !important;
+  text-shadow: 0 0 20px rgba(0, 255, 135, 0.4);
+}
+
+.brand-pill {
+  background: rgba(220, 38, 38, 0.2) !important;
+  border-color: rgba(239, 68, 68, 0.4) !important;
+  color: #f8fafc !important;
+}
+
+.id-pill {
+  background: rgba(0, 255, 135, 0.15) !important;
+  border-color: rgba(0, 255, 135, 0.3) !important;
+  color: #00ff87 !important;
 }
