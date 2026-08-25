@@ -26,11 +26,13 @@ export async function getAllLeagueStandings(leagueId: number = LEAGUE_ID) {
   let page = 1;
   let hasNext = true;
   let allResults: any[] = [];
-  let leagueInfo: any = null;
+  let firstPageData: any = null;
 
   while (hasNext && page <= 10) {
     const data = await getLeague(leagueId, page);
-    if (!leagueInfo) leagueInfo = data.league;
+    if (page === 1) {
+      firstPageData = data;
+    }
     
     const results = data.standings?.results || [];
     allResults = [...allResults, ...results];
@@ -39,7 +41,8 @@ export async function getAllLeagueStandings(leagueId: number = LEAGUE_ID) {
   }
 
   return {
-    league: leagueInfo,
+    first: firstPageData,
+    league: firstPageData?.league,
     standings: {
       results: allResults,
     },
