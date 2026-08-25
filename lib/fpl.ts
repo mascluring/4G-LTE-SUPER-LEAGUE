@@ -28,7 +28,7 @@ export async function getAllLeagueStandings(leagueId: number = LEAGUE_ID) {
   let allResults: any[] = [];
   let firstPageData: any = null;
 
-  while (hasNext && page <= 10) {
+  while (hasNext && page <= 20) {
     const data = await getLeague(leagueId, page);
     if (page === 1) {
       firstPageData = data;
@@ -43,9 +43,8 @@ export async function getAllLeagueStandings(leagueId: number = LEAGUE_ID) {
   return {
     first: firstPageData,
     league: firstPageData?.league,
-    standings: {
-      results: allResults,
-    },
+    // Diubah menjadi Array langsung agar `standings.length` dan `.reduce()` di route.ts tidak error
+    standings: allResults,
   };
 }
 
